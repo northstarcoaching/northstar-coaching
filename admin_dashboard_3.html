@@ -557,7 +557,6 @@ function generateCode(targetId) {
   document.getElementById(targetId).textContent = code;
 }
 
-async 
 function saveGhUrls() {
   localStorage.setItem('nsc_gh_portal',  document.getElementById('gh-portal-url').value);
   localStorage.setItem('nsc_gh_intake',  document.getElementById('gh-intake-url').value);
@@ -572,7 +571,7 @@ function loadGhUrls() {
   if (s) document.getElementById('gh-session-url').value = s;
 }
 
-function saveCoach() {
+async function saveCoach() {
   const name = document.getElementById('new-coach-name').value.trim();
   const email = document.getElementById('new-coach-email').value.trim();
   const code = document.getElementById('coach-gen-code').textContent;
