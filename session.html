@@ -30,17 +30,23 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 async function loadCurrentForm() {
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/form_versions?form_type=eq.session&is_current=eq.true&select=html_content&limit=1`,
-      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
-    );
-    const data = await res.json();
-    if (!data || !data.length || !data[0].html_content) {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/get_current_form`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ p_form_type: 'session' })
+    });
+    if (!res.ok) throw new Error('Form lookup failed');
+    const html = await res.json();
+    if (!html) {
       showError('No current session form found. Please contact your coach.');
       return;
     }
     document.open();
-    document.write(data[0].html_content);
+    document.write(html);
     document.close();
   } catch(e) {
     showError('Unable to load form. Please check your connection and try again.');
