@@ -710,7 +710,7 @@ async function saveCandidate() {
 async function deleteCoach(id, name) {
   if (!confirm(`Remove coach ${name}? Their candidates will become unassigned.`)) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/coaches?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+    await fetch(`${SB_URL}/rest/v1/coaches?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}` } });
     showToast(`${name} removed.`, 'success');
     await loadAll();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
@@ -719,7 +719,7 @@ async function deleteCoach(id, name) {
 async function deleteCandidate(id, name) {
   if (!confirm(`Remove candidate ${name}? All their data will be deleted.`)) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/candidates?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+    await fetch(`${SB_URL}/rest/v1/candidates?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}` } });
     showToast(`${name} removed.`, 'success');
     await loadAll();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
@@ -831,7 +831,7 @@ async function saveEditCoach() {
   try {
     await fetch(`${SB_URL}/rest/v1/coaches?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify({ name, email: email || null })
     });
     showToast(`${name} updated successfully.`, 'success');
@@ -871,7 +871,7 @@ async function saveEditCandidate() {
   try {
     await fetch(`${SB_URL}/rest/v1/candidates?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify({ name, email: email || null, coach_id: coachId || null, programme: programme || null, status })
     });
     showToast(`${name} updated successfully.`, 'success');
@@ -995,7 +995,7 @@ async function uploadFormVersion(file) {
         for (const cv of currentOnes) {
           await fetch(`${SB_URL}/rest/v1/form_versions?id=eq.${cv.id}`, {
             method: 'PATCH',
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_current: false, is_archived: true })
           });
         }
@@ -1043,14 +1043,14 @@ async function setFormVersionCurrent(id) {
     for (const cv of existing.filter(v => v.is_current)) {
       await fetch(`${SB_URL}/rest/v1/form_versions?id=eq.${cv.id}`, {
         method: 'PATCH',
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_current: false, is_archived: true })
       });
     }
     // Set selected as current
     await fetch(`${SB_URL}/rest/v1/form_versions?id=eq.${id}`, {
       method: 'PATCH',
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${authSession ? authSession.access_token : SB_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_current: true, is_archived: false })
     });
     showToast('Version set as current successfully.', 'success');
