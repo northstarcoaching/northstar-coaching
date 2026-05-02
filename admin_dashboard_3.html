@@ -851,14 +851,19 @@ async function callClaude(system, user) {
 // showPage defined below with forms library support
 
 // ── VIEW SUBMISSIONS ───────────────────────────────────────────────────────
+// Cache to hold submission data; onclick handlers reference by id so we
+// avoid embedding huge text strings (with quotes/newlines) into HTML attributes.
+window._subsCache = window._subsCache || {};
+
 async function viewCandidateSubmissions(candId, candName) {
-  document.getElementById('view-subs-title').textContent = candName + ' — Submissions';
+  document.getElementById('view-subs-title').textContent = candName + ' \u2014 Submissions';
   document.getElementById('view-subs-body').innerHTML = '<div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div><span>Loading submissions...</span></div>';
   openModal('modal-view-subs');
   try {
     const intakes = await sb('intake_responses', { filter: 'candidate_id=eq.' + candId, select: 'id,response_text,submitted_at', order: 'submitted_at.desc' });
     const sessions = await sb('session_records', { filter: 'candidate_id=eq.' + candId, select: 'id,session_number,session_date,focus_topic,record_text,submitted_at', order: 'session_number.asc' });
 
+    const safeName = (candName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
     let html = '';
 
     // INTAKE section
@@ -868,17 +873,21 @@ async function viewCandidateSubmissions(candId, candName) {
     } else {
       intakes.forEach(it => {
         const dt = new Date(it.submitted_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' });
-        const safeText = (it.response_text || '').replace(/`/g, '\`').replace(/\\/g, '\\\\');
-        const safeName = (candName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
         const fname = 'NSC_Intake_' + safeName + '_' + it.submitted_at.slice(0,10) + '.txt';
+        const cacheKey = 'i_' + it.id;
+        window._subsCache[cacheKey] = {
+          text: it.response_text || '(empty)',
+          title: candName + ' \u2014 Coaching Intake',
+          filename: fname
+        };
         html += '<div class="sub-row">' +
           '<div class="sub-row-info">' +
             '<div class="sub-row-title">Coaching Intake</div>' +
             '<div class="sub-row-meta">Submitted ' + dt + '</div>' +
           '</div>' +
           '<div class="sub-row-actions">' +
-            '<button class="btn btn-primary btn-sm" onclick="viewSubmissionText(' + JSON.stringify(it.response_text || '') + ',' + JSON.stringify(candName + ' — Intake') + ',' + JSON.stringify(fname) + ')">View</button>' +
-            '<button class="btn btn-edit btn-sm" onclick="downloadSubmission(' + JSON.stringify(it.response_text || '') + ',' + JSON.stringify(fname) + ')">Download</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="viewSubFromCache(\'' + cacheKey + '\')">View</button>' +
+            '<button class="btn btn-edit btn-sm" onclick="downloadSubFromCache(\'' + cacheKey + '\')">Download</button>' +
           '</div>' +
         '</div>';
       });
@@ -892,17 +901,22 @@ async function viewCandidateSubmissions(candId, candName) {
       sessions.forEach(sr => {
         const dt = new Date(sr.submitted_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' });
         const sessionLabel = 'Session ' + (sr.session_number || '?');
-        const focusText = sr.focus_topic ? ' · ' + sr.focus_topic : '';
-        const safeName = (candName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const focusText = sr.focus_topic ? ' \u00b7 ' + sr.focus_topic : '';
         const fname = 'NSC_Session' + (sr.session_number ? '_S' + sr.session_number : '') + '_' + safeName + '_' + (sr.session_date || sr.submitted_at.slice(0,10)) + '.txt';
+        const cacheKey = 's_' + sr.id;
+        window._subsCache[cacheKey] = {
+          text: sr.record_text || '(empty)',
+          title: candName + ' \u2014 ' + sessionLabel,
+          filename: fname
+        };
         html += '<div class="sub-row">' +
           '<div class="sub-row-info">' +
             '<div class="sub-row-title">' + sessionLabel + focusText + '</div>' +
-            '<div class="sub-row-meta">Date: ' + (sr.session_date || '(none)') + ' · Submitted ' + dt + '</div>' +
+            '<div class="sub-row-meta">Date: ' + (sr.session_date || '(none)') + ' \u00b7 Submitted ' + dt + '</div>' +
           '</div>' +
           '<div class="sub-row-actions">' +
-            '<button class="btn btn-primary btn-sm" onclick="viewSubmissionText(' + JSON.stringify(sr.record_text || '') + ',' + JSON.stringify(candName + ' — ' + sessionLabel) + ',' + JSON.stringify(fname) + ')">View</button>' +
-            '<button class="btn btn-edit btn-sm" onclick="downloadSubmission(' + JSON.stringify(sr.record_text || '') + ',' + JSON.stringify(fname) + ')">Download</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="viewSubFromCache(\'' + cacheKey + '\')">View</button>' +
+            '<button class="btn btn-edit btn-sm" onclick="downloadSubFromCache(\'' + cacheKey + '\')">Download</button>' +
           '</div>' +
         '</div>';
       });
@@ -912,6 +926,18 @@ async function viewCandidateSubmissions(candId, candName) {
   } catch (e) {
     document.getElementById('view-subs-body').innerHTML = '<div class="sub-empty" style="color:#8a2020">Error loading submissions: ' + (e.message || e) + '</div>';
   }
+}
+
+function viewSubFromCache(key) {
+  const sub = window._subsCache[key];
+  if (!sub) { showToast('Submission not found in cache. Reopen the View panel.', 'error'); return; }
+  viewSubmissionText(sub.text, sub.title, sub.filename);
+}
+
+function downloadSubFromCache(key) {
+  const sub = window._subsCache[key];
+  if (!sub) { showToast('Submission not found in cache. Reopen the View panel.', 'error'); return; }
+  downloadSubmission(sub.text, sub.filename);
 }
 
 function viewSubmissionText(text, title, filename) {
