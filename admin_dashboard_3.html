@@ -97,6 +97,19 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,34,64,.7);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-overlay.open{display:flex}
+.sub-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border-soft);border-radius:8px;margin-bottom:8px;background:var(--off);font-size:13px}
+.sub-row:hover{background:var(--gold-wash);border-color:var(--gold)}
+.sub-row-info{flex:1;min-width:0}
+.sub-row-title{font-weight:700;color:var(--navy);font-size:13px;margin-bottom:2px}
+.sub-row-meta{font-size:11px;color:var(--text-light)}
+.sub-row-actions{display:flex;gap:6px;margin-left:12px}
+.sub-section-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:700;font-family:var(--cinzel);margin:1rem 0 .5rem}
+.sub-empty{padding:1rem;text-align:center;color:var(--text-light);font-style:italic;font-size:13px;border:1px dashed var(--border-soft);border-radius:8px}
+.new-sub-banner{background:linear-gradient(90deg,#fff4d6 0%,#fdf5dc 100%);border:1px solid var(--gold);border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;color:var(--navy);font-size:13px;display:flex;align-items:center;justify-content:space-between;animation:fadeInDown .4s}
+.new-sub-banner-text{font-weight:600}
+.new-sub-banner-text strong{color:#8a5a00}
+.new-sub-dismiss{background:none;border:1px solid var(--gold);color:var(--navy);padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--cinzel);letter-spacing:.05em}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 .modal{background:var(--white);border-radius:14px;padding:2rem;width:100%;max-width:480px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto}
 .modal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--navy),var(--gold))}
 .modal h3{font-family:var(--cinzel);font-size:16px;font-weight:400;color:var(--navy);margin-bottom:.25rem;letter-spacing:.05em}
@@ -439,6 +452,34 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
   </div>
 </div>
 
+
+<!-- VIEW SUBMISSIONS MODAL -->
+<div class="modal-overlay" id="modal-view-subs">
+  <div class="modal" style="max-width:720px">
+    <button class="modal-close" onclick="closeModal('modal-view-subs')">&times;</button>
+    <h3 id="view-subs-title">Submissions</h3>
+    <div id="view-subs-body" style="margin-top:1rem;max-height:60vh;overflow-y:auto">
+      <div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div><span>Loading submissions...</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:1rem">
+      <button class="btn" onclick="closeModal('modal-view-subs')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW SUBMISSION TEXT MODAL -->
+<div class="modal-overlay" id="modal-view-text">
+  <div class="modal" style="max-width:820px">
+    <button class="modal-close" onclick="closeModal('modal-view-text')">&times;</button>
+    <h3 id="view-text-title">Submission</h3>
+    <pre id="view-text-body" style="margin-top:1rem;max-height:60vh;overflow:auto;background:var(--off);border:1px solid var(--border-soft);border-radius:8px;padding:1rem;font-family:Consolas,Monaco,monospace;font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-word"></pre>
+    <div class="btn-row" style="margin-top:1rem">
+      <button class="btn" onclick="closeModal('modal-view-text')">Close</button>
+      <button class="btn btn-primary" id="view-text-download">Download as .txt</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
@@ -588,6 +629,8 @@ async function loadAll() {
     allCandidates = await sb('candidates', { select: '*', order: 'created_at.asc' });
     const sessions = await sb('session_records', { select: 'id' });
     const intakes = await sb('intake_responses', { select: 'id' });
+    // Check for new submissions since last visit (Tier 2.5+)
+    checkNewSubmissions();
     document.getElementById('stat-coaches').textContent = allCoaches.filter(c=>!c.is_admin).length;
     document.getElementById('stat-candidates').textContent = allCandidates.length;
     document.getElementById('stat-sessions').textContent = sessions.length;
@@ -636,7 +679,7 @@ function renderCandidatesTable() {
   wrap.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Access Code</th><th>Coach</th><th>Programme</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
     allCandidates.map(c => {
       const coach = allCoaches.find(x => x.id === c.coach_id);
-      return `<tr><td class="td-name">${c.name}</td><td>${c.email||'—'}</td><td><span class="code-pill">${c.access_code}</span></td><td>${coach?coach.name:'Unassigned'}</td><td>${c.programme||'—'}</td><td><span class="status-pill ${c.status==='Active'?'sp-active':'sp-inactive'}">${c.status}</span></td><td><div class="btn-group"><button class="btn btn-edit btn-sm" onclick="editCandidate('${c.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteCandidate('${c.id}','${c.name}')">Remove</button></div></td></tr>`;
+      return `<tr><td class="td-name">${c.name}</td><td>${c.email||'—'}</td><td><span class="code-pill">${c.access_code}</span></td><td>${coach?coach.name:'Unassigned'}</td><td>${c.programme||'—'}</td><td><span class="status-pill ${c.status==='Active'?'sp-active':'sp-inactive'}">${c.status}</span></td><td><div class="btn-group"><button class="btn btn-primary btn-sm" onclick="viewCandidateSubmissions('${c.id}','${c.name.replace(/'/g, "\\'")}')">View</button><button class="btn btn-edit btn-sm" onclick="editCandidate('${c.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteCandidate('${c.id}','${c.name.replace(/'/g, "\\'")}')">Remove</button></div></td></tr>`;
     }).join('')
   }</tbody></table>`;
 }
@@ -806,6 +849,121 @@ async function callClaude(system, user) {
 }
 
 // showPage defined below with forms library support
+
+// ── VIEW SUBMISSIONS ───────────────────────────────────────────────────────
+async function viewCandidateSubmissions(candId, candName) {
+  document.getElementById('view-subs-title').textContent = candName + ' — Submissions';
+  document.getElementById('view-subs-body').innerHTML = '<div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div><span>Loading submissions...</span></div>';
+  openModal('modal-view-subs');
+  try {
+    const intakes = await sb('intake_responses', { filter: 'candidate_id=eq.' + candId, select: 'id,response_text,submitted_at', order: 'submitted_at.desc' });
+    const sessions = await sb('session_records', { filter: 'candidate_id=eq.' + candId, select: 'id,session_number,session_date,focus_topic,record_text,submitted_at', order: 'session_number.asc' });
+
+    let html = '';
+
+    // INTAKE section
+    html += '<div class="sub-section-label">Intake Form</div>';
+    if (!intakes.length) {
+      html += '<div class="sub-empty">No intake submitted yet.</div>';
+    } else {
+      intakes.forEach(it => {
+        const dt = new Date(it.submitted_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' });
+        const safeText = (it.response_text || '').replace(/`/g, '\`').replace(/\\/g, '\\\\');
+        const safeName = (candName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fname = 'NSC_Intake_' + safeName + '_' + it.submitted_at.slice(0,10) + '.txt';
+        html += '<div class="sub-row">' +
+          '<div class="sub-row-info">' +
+            '<div class="sub-row-title">Coaching Intake</div>' +
+            '<div class="sub-row-meta">Submitted ' + dt + '</div>' +
+          '</div>' +
+          '<div class="sub-row-actions">' +
+            '<button class="btn btn-primary btn-sm" onclick="viewSubmissionText(' + JSON.stringify(it.response_text || '') + ',' + JSON.stringify(candName + ' — Intake') + ',' + JSON.stringify(fname) + ')">View</button>' +
+            '<button class="btn btn-edit btn-sm" onclick="downloadSubmission(' + JSON.stringify(it.response_text || '') + ',' + JSON.stringify(fname) + ')">Download</button>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+
+    // SESSIONS section
+    html += '<div class="sub-section-label">Session Records</div>';
+    if (!sessions.length) {
+      html += '<div class="sub-empty">No session records yet.</div>';
+    } else {
+      sessions.forEach(sr => {
+        const dt = new Date(sr.submitted_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' });
+        const sessionLabel = 'Session ' + (sr.session_number || '?');
+        const focusText = sr.focus_topic ? ' · ' + sr.focus_topic : '';
+        const safeName = (candName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fname = 'NSC_Session' + (sr.session_number ? '_S' + sr.session_number : '') + '_' + safeName + '_' + (sr.session_date || sr.submitted_at.slice(0,10)) + '.txt';
+        html += '<div class="sub-row">' +
+          '<div class="sub-row-info">' +
+            '<div class="sub-row-title">' + sessionLabel + focusText + '</div>' +
+            '<div class="sub-row-meta">Date: ' + (sr.session_date || '(none)') + ' · Submitted ' + dt + '</div>' +
+          '</div>' +
+          '<div class="sub-row-actions">' +
+            '<button class="btn btn-primary btn-sm" onclick="viewSubmissionText(' + JSON.stringify(sr.record_text || '') + ',' + JSON.stringify(candName + ' — ' + sessionLabel) + ',' + JSON.stringify(fname) + ')">View</button>' +
+            '<button class="btn btn-edit btn-sm" onclick="downloadSubmission(' + JSON.stringify(sr.record_text || '') + ',' + JSON.stringify(fname) + ')">Download</button>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+
+    document.getElementById('view-subs-body').innerHTML = html;
+  } catch (e) {
+    document.getElementById('view-subs-body').innerHTML = '<div class="sub-empty" style="color:#8a2020">Error loading submissions: ' + (e.message || e) + '</div>';
+  }
+}
+
+function viewSubmissionText(text, title, filename) {
+  document.getElementById('view-text-title').textContent = title;
+  document.getElementById('view-text-body').textContent = text;
+  document.getElementById('view-text-download').onclick = function() { downloadSubmission(text, filename); };
+  openModal('modal-view-text');
+}
+
+function downloadSubmission(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'submission.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+// ── NEW SUBMISSIONS SINCE LAST VISIT ───────────────────────────────────────
+async function checkNewSubmissions() {
+  if (!authSession) return;
+  try {
+    const lastVisit = localStorage.getItem('nsc_last_visit') || new Date(Date.now() - 7*24*60*60*1000).toISOString();
+    const newIntakes = await sb('intake_responses', { filter: 'submitted_at=gt.' + lastVisit, select: 'id', order: 'submitted_at.desc' });
+    const newSessions = await sb('session_records', { filter: 'submitted_at=gt.' + lastVisit, select: 'id', order: 'submitted_at.desc' });
+    const total = (newIntakes ? newIntakes.length : 0) + (newSessions ? newSessions.length : 0);
+    if (total > 0) {
+      const overview = document.getElementById('page-overview') || document.querySelector('.main') || document.querySelector('main');
+      if (overview && !document.getElementById('new-sub-banner')) {
+        const banner = document.createElement('div');
+        banner.id = 'new-sub-banner';
+        banner.className = 'new-sub-banner';
+        const intakeText = newIntakes && newIntakes.length ? newIntakes.length + ' new intake' + (newIntakes.length > 1 ? 's' : '') : '';
+        const sessionText = newSessions && newSessions.length ? newSessions.length + ' new session record' + (newSessions.length > 1 ? 's' : '') : '';
+        const both = [intakeText, sessionText].filter(function(x){return x;}).join(' and ');
+        banner.innerHTML = '<div class="new-sub-banner-text"><strong>You have new submissions to review:</strong> ' + both + ' since your last visit.</div>' +
+                          '<button class="new-sub-dismiss" onclick="dismissNewSubBanner()">Mark as Reviewed</button>';
+        overview.insertBefore(banner, overview.firstChild);
+      }
+    }
+  } catch(e) { console.error('checkNewSubmissions error:', e); }
+}
+
+function dismissNewSubBanner() {
+  localStorage.setItem('nsc_last_visit', new Date().toISOString());
+  const banner = document.getElementById('new-sub-banner');
+  if (banner) banner.remove();
+  showToast('Marked as reviewed. Banner will reappear when new submissions arrive.', 'success');
+}
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
