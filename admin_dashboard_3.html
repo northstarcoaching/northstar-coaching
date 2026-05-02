@@ -189,7 +189,7 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
     </div>
     <nav class="sidebar-nav">
       <div class="nav-sec">Overview</div>
-      <button class="nav-btn active" onclick="showPage('overview',this)"><span class="nav-dot"></span>Programme Overview</button>
+      <button class="nav-btn active" onclick="showPage('overview',this)"><span class="nav-dot"></span>Program Overview</button>
       <div class="nav-sec">Manage</div>
       <button class="nav-btn" onclick="showPage('coaches',this)"><span class="nav-dot"></span>Coaches</button>
       <button class="nav-btn" onclick="showPage('candidates',this)"><span class="nav-dot"></span>All Candidates</button>
@@ -206,7 +206,7 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
     <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
       <div class="page-hdr">
-        <div class="page-hdr-left"><h1>Programme Overview</h1><p>All coaches and candidates across North Star Coaching</p></div>
+        <div class="page-hdr-left"><h1>Program Overview</h1><p>All coaches and candidates across North Star Coaching</p></div>
         <button class="btn btn-primary" onclick="openModal('modal-add-candidate')">+ Add Candidate</button>
       </div>
       <div class="stats-row">
@@ -236,7 +236,7 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
     <!-- CANDIDATES -->
     <div class="page" id="page-candidates">
       <div class="page-hdr">
-        <div class="page-hdr-left"><h1>All Candidates</h1><p>Every candidate across all coaches and programmes</p></div>
+        <div class="page-hdr-left"><h1>All Candidates</h1><p>Every candidate across all coaches and programs</p></div>
         <button class="btn btn-primary" onclick="openModal('modal-add-candidate')">+ Add Candidate</button>
       </div>
       <div class="card">
@@ -248,7 +248,7 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
     <!-- ANALYSIS -->
     <div class="page" id="page-analysis">
       <div class="page-hdr">
-        <div class="page-hdr-left"><h1>AI Analysis</h1><p>Run programme-wide or individual coaching analysis</p></div>
+        <div class="page-hdr-left"><h1>AI Analysis</h1><p>Run program-wide or individual coaching analysis</p></div>
       </div>
       <div class="card">
         <div class="card-label">Select Candidate</div>
@@ -391,7 +391,7 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
     <div class="form-field"><label>Full Name</label><input type="text" id="new-cand-name" placeholder="e.g. Michael Chen"></div>
     <div class="form-field"><label>Email <span style="font-size:10px;color:var(--text-light)">(optional)</span></label><input type="text" id="new-cand-email" placeholder="michael@company.com"></div>
     <div class="form-field"><label>Assigned Coach</label><select id="new-cand-coach"><option value="">— Select coach —</option></select></div>
-    <div class="form-field"><label>Programme</label><input type="text" id="new-cand-programme" value="GCC Leadership Coaching"></div>
+    <div class="form-field"><label>Program</label><input type="text" id="new-cand-programme" value="GCC Leadership Coaching"></div>
     <div class="generated-code" id="cand-gen-code">—</div>
     <div class="code-hint">This code gives the candidate access to the intake and session forms. Share it privately.</div>
     <div class="btn-row">
@@ -433,7 +433,7 @@ body{font-family:var(--lato);background:var(--off);color:var(--text);min-height:
     <div class="form-field"><label>Assigned Coach</label>
       <select id="edit-cand-coach"></select>
     </div>
-    <div class="form-field"><label>Programme</label><input type="text" id="edit-cand-programme" placeholder="Programme name"></div>
+    <div class="form-field"><label>Program</label><input type="text" id="edit-cand-programme" placeholder="Program name"></div>
     <div class="form-field"><label>Status</label>
       <select id="edit-cand-status">
         <option value="Active">Active</option>
@@ -676,7 +676,7 @@ function renderCoachesTable() {
 function renderCandidatesTable() {
   const wrap = document.getElementById('candidates-table-wrap');
   if (!allCandidates.length) { wrap.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No candidates yet.</p></div>'; return; }
-  wrap.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Access Code</th><th>Coach</th><th>Programme</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
+  wrap.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Access Code</th><th>Coach</th><th>Program</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
     allCandidates.map(c => {
       const coach = allCoaches.find(x => x.id === c.coach_id);
       return `<tr><td class="td-name">${c.name}</td><td>${c.email||'—'}</td><td><span class="code-pill">${c.access_code}</span></td><td>${coach?coach.name:'Unassigned'}</td><td>${c.programme||'—'}</td><td><span class="status-pill ${c.status==='Active'?'sp-active':'sp-inactive'}">${c.status}</span></td><td><div class="btn-group"><button class="btn btn-primary btn-sm" onclick="viewCandidateSubmissions('${c.id}','${c.name.replace(/'/g, "\\'")}')">View</button><button class="btn btn-edit btn-sm" onclick="editCandidate('${c.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteCandidate('${c.id}','${c.name.replace(/'/g, "\\'")}')">Remove</button></div></td></tr>`;
@@ -806,7 +806,7 @@ async function runAllAnalysis() {
       }
     }
     if (!allCtx) { document.getElementById('analysis-thinking').style.display='none'; document.getElementById('analysis-result').innerHTML='<span class="analysis-placeholder">No candidate data available yet.</span>'; return; }
-    const result = await callClaude('You are an executive coaching programme director. Provide a cross-candidate analysis: common themes, individual highlights, patterns, and programme-level recommendations.', allCtx);
+    const result = await callClaude('You are an executive coaching program director. Provide a cross-candidate analysis: common themes, individual highlights, patterns, and program-level recommendations.', allCtx);
     document.getElementById('analysis-thinking').style.display = 'none';
     document.getElementById('analysis-result').textContent = result;
   } catch(e) { document.getElementById('analysis-thinking').style.display='none'; showToast('Error: '+e.message,'error'); }
